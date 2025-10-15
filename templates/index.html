@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrainWave AI - MRI Analysis</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+
+<body>
+  <!-- Background Animation -->
+  <div class="bg-animation">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+  </div>
+  <!-- Main Container -->
+  <div class="container-fluid px-3 px-md-5">
+    <!-- Header Section -->
+    <div class="text-center mb-5 pt-5">
+      <div class="header-content">
+        <div class="brain-icon mb-4">
+          <i class="fas fa-brain"></i>
+        </div>
+        <h1 class="main-title">
+          <span class="gradient-text">BrainWave</span> AI
+        </h1>
+        <p class="subtitle">Advanced MRI Analysis with AI-Powered Detection & Segmentation</p>
+        <div class="feature-badges mt-4">
+          <span class="badge-feature">
+            <i class="fas fa-search-plus me-2"></i>Tumor Detection
+          </span>
+          <span class="badge-feature">
+            <i class="fas fa-eye me-2"></i>Neural Segmentation
+          </span>
+          <span class="badge-feature">
+            <i class="fas fa-chart-line me-2"></i>Real-time Analysis
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-warning glass-card fade-in" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Upload Section -->
+    <div class="upload-section glass-card mb-5">
+      <form method="POST" enctype="multipart/form-data" id="uploadForm">
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-content">
+            <div class="upload-icon">
+              <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <h3 class="upload-title">Upload MRI Scan</h3>
+            <p class="upload-text">Drag & drop your MRI image here or click to browse</p>
+            <input type="file" class="file-input" id="file" name="file" accept="image/*" required />
+            <div class="file-types">Supports: PNG, JPG, JPEG, BMP</div>
+          </div>
+          <div class="upload-preview" id="uploadPreview" style="display: none;">
+            <img id="previewImage" alt="Preview" />
+            <div class="file-info">
+              <div class="file-name" id="fileName"></div>
+              <button type="button" class="btn-remove" id="removeFile">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <button type="submit" class="btn-analyze" id="analyzeBtn" disabled>
+          <span class="btn-text">
+            <i class="fas fa-brain me-2"></i>
+            Analyze MRI Scan
+          </span>
+          <div class="btn-loader" style="display: none;">
+            <div class="spinner"></div>
+            Processing...
+          </div>
+        </button>
+      </form>
+    </div>
+
+    <!-- Results Section -->
+    {% if result %}
+      <div class="results-section fade-in">
+        <!-- AI Analysis Header -->
+        <div class="analysis-header glass-card mb-4">
+          <div class="analysis-icon">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="analysis-content">
+            <h2 class="analysis-title">AI Analysis Complete</h2>
+            <div class="diagnosis-result">
+              <span class="diagnosis-label">{{ result }}</span>
+              <div class="confidence-meter">
+                <div class="confidence-bar">
+                  <div class="confidence-fill" style="width: {{ confidence }}%"></div>
+                </div>
+                <span class="confidence-text">{{ confidence }}% Confidence</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image Analysis Grid -->
+        <div class="row g-4">
+          <div class="col-lg-4">
+            <div class="result-card glass-card h-100">
+              <div class="card-header">
+                <div class="card-icon">
+                  <i class="fas fa-image"></i>
+                </div>
+                <h5 class="card-title">Original Scan</h5>
+              </div>
+              <div class="image-container">
+                <img src="{{ uploaded_image }}" class="result-image" alt="Original MRI" />
+                <div class="image-overlay">
+                  <button class="btn-fullscreen" onclick="openModal('{{ uploaded_image }}', 'Original MRI Scan')">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="result-card glass-card h-100">
+              <div class="card-header">
+                <div class="card-icon">
+                  <i class="fas fa-search"></i>
+                </div>
+                <h5 class="card-title">Segmentation Mask</h5>
+              </div>
+              <div class="image-container">
+                <img src="{{ mask_image }}" class="result-image" alt="Segmentation Mask" />
+                <div class="image-overlay">
+                  <button class="btn-fullscreen" onclick="openModal('{{ mask_image }}', 'Segmentation Mask')">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="result-card glass-card h-100">
+              <div class="card-header">
+                <div class="card-icon">
+                  <i class="fas fa-layer-group"></i>
+                </div>
+                <h5 class="card-title">Overlay Analysis</h5>
+              </div>
+              <div class="image-container">
+                <img src="{{ overlay_image }}" class="result-image" alt="Overlay" />
+                <div class="image-overlay">
+                  <button class="btn-fullscreen" onclick="openModal('{{ overlay_image }}', 'Overlay Analysis')">
+                    <i class="fas fa-expand"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- New Analysis Button -->
+        <div class="text-center mt-5">
+          <button class="btn-new-analysis" onclick="window.location.reload()">
+            <i class="fas fa-plus me-2"></i>
+            Analyze New Scan
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Scan History Section -->
+    {% if scan_history and scan_history|length > 0 %}
+      <div class="history-section mt-5">
+        <div class="history-header glass-card mb-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <div class="history-icon">
+                <i class="fas fa-history"></i>
+              </div>
+              <div>
+                <h3 class="history-title mb-0">Previous Scans</h3>
+                <p class="history-subtitle mb-0">{{ scan_history|length }} scan{{ 's' if scan_history|length != 1 else '' }} in history</p>
+              </div>
+            </div>
+            <form method="POST" action="{{ url_for('clear_history') }}" style="display: inline;">
+              <button type="submit" class="btn-clear-history" onclick="return confirm('Are you sure you want to clear all scan history?')">
+                <i class="fas fa-trash-alt me-1"></i>
+                Clear History
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="history-grid">
+          {% for scan in scan_history %}
+            <div class="history-card glass-card">
+              <div class="history-card-header">
+                <div class="scan-timestamp">
+                  <i class="fas fa-calendar-alt me-1"></i>
+                  {{ moment(scan.timestamp).format('MMM DD, YYYY') if moment else scan.timestamp[:10] }}
+                </div>
+                <div class="scan-time">
+                  {{ moment(scan.timestamp).format('HH:mm') if moment else scan.timestamp[11:16] }}
+                </div>
+              </div>
+              
+              <div class="history-images">
+                <div class="history-image-container">
+                  <img src="{{ url_for('static', filename='uploads/' + scan.filename) }}" 
+                       alt="Original" 
+                       class="history-image"
+                       onclick="openModal('{{ url_for('static', filename='uploads/' + scan.filename) }}', 'Original - {{ scan.timestamp[:10] }}')">
+                  <div class="image-label">Original</div>
+                </div>
+                
+                <div class="history-image-container">
+                  <img src="{{ url_for('static', filename='results/' + scan.overlay_filename) }}" 
+                       alt="Analysis" 
+                       class="history-image"
+                       onclick="openModal('{{ url_for('static', filename='results/' + scan.overlay_filename) }}', 'Analysis - {{ scan.timestamp[:10] }}')">
+                  <div class="image-label">Analysis</div>
+                </div>
+              </div>
+              
+              <div class="history-result">
+                <div class="result-badge {{ 'no-tumor' if 'No Tumor' in scan.result else 'tumor' }}">
+                  {{ scan.result }}
+                </div>
+                <div class="confidence-display">
+                  <span class="confidence-value">{{ scan.confidence }}%</span>
+                  <div class="mini-confidence-bar">
+                    <div class="mini-confidence-fill" style="width: {{ scan.confidence }}%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Image Modal -->
+  <div class="modal-overlay" id="imageModal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">
+        <i class="fas fa-times"></i>
+      </button>
+      <img id="modalImage" alt="Full size view" />
+      <div class="modal-title" id="modalTitle"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('file');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const previewImage = document.getElementById('previewImage');
+    const fileName = document.getElementById('fileName');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const removeFile = document.getElementById('removeFile');
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelect(files[0]);
+      }
+    });
+
+    uploadArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    removeFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetUpload();
+    });
+
+    function handleFileSelect(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImage.src = e.target.result;
+        fileName.textContent = file.name;
+        uploadPreview.style.display = 'block';
+        uploadArea.querySelector('.upload-content').style.display = 'none';
+        analyzeBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetUpload() {
+      fileInput.value = '';
+      uploadPreview.style.display = 'none';
+      uploadArea.querySelector('.upload-content').style.display = 'block';
+      analyzeBtn.disabled = true;
+    }
+
+    // Form submission with loading state
+    uploadForm.addEventListener('submit', (e) => {
+      const btnText = analyzeBtn.querySelector('.btn-text');
+      const btnLoader = analyzeBtn.querySelector('.btn-loader');
+      
+      btnText.style.display = 'none';
+      btnLoader.style.display = 'flex';
+      analyzeBtn.disabled = true;
+    });
+
+    // Modal functionality
+    function openModal(imageSrc, title) {
+      document.getElementById('modalImage').src = imageSrc;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('imageModal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('imageModal').style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    // Smooth scroll animations
+    window.addEventListener('scroll', () => {
+      const elements = document.querySelectorAll('.glass-card');
+      elements.forEach(element => {
+        const elementTop = element.getBoundingClientRect().top;
+        const elementVisible = 150;
+        
+        if (elementTop < window.innerHeight - elementVisible) {
+          element.classList.add('visible');
+        }
+      });
+    });
+
+    // Initial animation trigger
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.glass-card').forEach(element => {
+          element.classList.add('visible');
+        });
+      }, 100);
+    });
+  </script>
+</body>
+</html>

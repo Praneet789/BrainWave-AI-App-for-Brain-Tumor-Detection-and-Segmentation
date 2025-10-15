@@ -1,0 +1,25 @@
+## Default: ignore everything
+*
+
+## Allow only these paths/files
+!/.gitignore
+!/templates/
+!/templates/**
+!/static/
+!/static/**
+!/index.html
+!*.ipynb
+
+## Inside static/, still ignore generated uploads/results
+/static/uploads/
+/static/results/
+
+## Keep common VCS/editor ignores
+/.venv/
+/venv/
+/.vscode/
+/.idea/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
