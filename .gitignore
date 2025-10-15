@@ -3,6 +3,9 @@
 
 ## Allow only these paths/files
 !/.gitignore
+!/README.md
+!/docs/
+!/docs/**
 !/templates/
 !/templates/**
 !/static/
